@@ -16,7 +16,7 @@ from io_util import analyse_args
 def eval_runtimes_geom(dataloader, with_sparse_measures=False):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     M, N = 512, 512
-    Loss = SamplesLoss("sinkhorn", blur=.01, scaling=.9)
+    Loss = SamplesLoss("sinkhorn", blur=.01, scaling=.9, backend='multiscale')
     
     data_time, model_time = 0., 0.
     t0 = time.time()
@@ -26,6 +26,9 @@ def eval_runtimes_geom(dataloader, with_sparse_measures=False):
             input_measures = [as_sparse_measure(ins[0][i].to(device), device) for i in range(2)]
         else:
             input_measures = [as_measure(ins[0][i].to(device), M, device) for i in range(2)]
+        print('test')
+        print(input_measures[0][0].shape)
+        print(input_measures[0][1].shape)
         ws = ws.reshape(-1).to(device)
         t4 = time.time()
         data_time += (t4 - t3)

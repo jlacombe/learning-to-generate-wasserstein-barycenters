@@ -12,6 +12,16 @@ targets_folder="input_targets"
 n=512
 m=512
 
+if [[ ! -d "$results_path" ]]
+then
+    mkdir $results_path
+fi
+
+if [[ ! -d "$targets_folder" ]]
+then
+    mkdir $targets_folder
+fi
+
 # 28x28
 # inputs_folder="input_imgs_28x28"
 # targets_folder="input_targets_28x28"

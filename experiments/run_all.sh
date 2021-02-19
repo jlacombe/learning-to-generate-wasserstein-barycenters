@@ -2,9 +2,9 @@
 # usage: ./run_all.sh
 
 # XPs parameters
-model_id="2020_10_5_3_20_19"
-model_class="BarycentricNet"
-results_XPs_path="./results/$model_id"
+model_id="bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_dsv2"
+model_class="BarycentricUNet"
+results_XPs_path="../training_model/results/$model_id"
 input_imgs_path="input_imgs" # contains .png files
 targets_path="input_targets"
 contours_input_path="../datasets/input_contours.h5"

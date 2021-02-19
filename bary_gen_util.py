@@ -1,3 +1,6 @@
+'''
+bary_gen_util.py
+'''
 import numpy as np
 import random
 import torch
@@ -5,11 +8,18 @@ import os
 import matplotlib.pyplot as plt
 from PIL import Image
 from torch.nn.functional import avg_pool2d
-from torchvision.transforms import Grayscale, Resize, Compose, ToTensor
+from torchvision.transforms import ToPILImage, Grayscale, Resize, Compose, ToTensor
 
-def gen_random_distrib(n_vals):
-    rnd_distrib = np.exp(np.random.randn(n_vals))
-    return rnd_distrib / rnd_distrib.sum()
+def get_randn_weights(n_inputs, mu=.5, sigma=.32):
+    distrib = []
+    for j in range(n_inputs):
+        y = np.random.normal(loc=mu, scale=sigma)
+        while (y < 0. or y > 1.):
+            y = np.random.normal(loc=mu,scale=sigma)
+        distrib.append(y)
+    distrib = np.array(distrib)
+    distrib /= distrib.sum()
+    return distrib
 
 def gen_random_tuple(minval, maxval, tuple_size):
     vals = []
@@ -48,7 +58,7 @@ def load_img(img_path):
     img = ToTensor()(img)
     return img
 
-def grid(size, device):
+def grid(size, device, dtype=torch.float):
     '''
     Generates a size*size grid with coordinates regularly spaced over the unit square. 
     The grid is returned under the form of a (size*size)*2 list of (x,y) coordinates. 
@@ -56,8 +66,8 @@ def grid(size, device):
     :param size: determines the size of the grid (seen as a square). 
     :returns: a (size*size)*2 list of (x,y) coordinates regularly spaced over the unit square. 
     '''
-    x_vec = torch.arange(0., size, device=device, dtype=torch.float) / size
-    y_vec = torch.arange(0., size, device=device, dtype=torch.float) / size
+    x_vec = torch.arange(0., size, device=device, dtype=dtype) / size
+    y_vec = torch.arange(0., size, device=device, dtype=dtype) / size
     y_mat, x_mat = torch.meshgrid([x_vec, y_vec])
     xy_coords = torch.stack((x_mat,y_mat), dim=2).view(-1,2)
     return xy_coords
@@ -89,7 +99,7 @@ def as_measure_from_path(img_path, size, device, inv_mass=False, eps=1e-20):
 
 def as_sparse_measure(img, device):
     x, y = torch.where(img != 0)
-    locations = torch.stack((y,x),axis=1).float() / img.shape[0]
+    locations = torch.stack((y,x),axis=1).type(img.dtype) / img.shape[0]
     weights = img[(x,y)]
     weights /= weights.sum()
     return weights.view(-1), locations
@@ -110,6 +120,11 @@ def gen_barycenter(input_measures, bweights, Loss, M, N, device, ngrad_iters=1, 
     
     :param input_measures: the list of the measures
     '''
+#     input_measures = []
+#     for input_path in inputs_paths:
+#         input_measure = as_measure_from_path(input_path, M, device)
+#         input_measures.append(input_measure)
+    
     bary_coords = grid(N, device).view(-1,2)
     bary_weights = (torch.ones(N*N) / (N*N)).type_as(bary_coords)
     bary_coords.requires_grad = True
@@ -151,11 +166,19 @@ def bin_barycenter(bary, M): # torch version
     # and we then discretize by adding each xindex 
     # to its corresponding (size of a row) * yindex. 
     xaxis_position = (bary[:,0] * M).floor()
-    yaxis_position = M * (bary[:,1] * M).floor()
-    bins = xaxis_position + yaxis_position
+    bins = xaxis_position
+    n_bins = M
+    if (bary.shape[1] != 1):
+        yaxis_position = M * (bary[:,1] * M).floor()
+        bins += yaxis_position
+        n_bins *= M
     # we count the number of times each index appear
-    histo = torch.histc(bins, bins=M*M, min=0., max=M*M) # <= non differentiable /!\
-    return histo.reshape(M,M)
+    histo = torch.histc(bins, bins=n_bins, min=0., max=n_bins) # <= non differentiable /!\
+    
+    if (bary.shape[1] != 1):
+        return histo.reshape(M,M)
+    else:
+        return histo
 
 def bin_barycenter_numpy(bary, M): # numpy version
     '''

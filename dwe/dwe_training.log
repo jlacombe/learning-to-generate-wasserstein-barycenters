@@ -1,2 +1,0 @@
-epoch,lambda_loss,loss,sequential_1_1_loss,sequential_1_2_loss,sequential_1_3_loss,sequential_1_loss,val_lambda_loss,val_loss,val_sequential_1_1_loss,val_sequential_1_2_loss,val_sequential_1_3_loss,val_sequential_1_loss
-0,315304064.0,315304160.0,3.622281312942505,468.65960693359375,469.92913818359375,3.557896375656128,20884928.0,20884998.0,3.285095691680908,447.6710510253906,438.02325439453125,3.355271100997925

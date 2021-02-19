@@ -57,7 +57,7 @@ def main():
     flags_path = os.path.join(model_results_path, 'flags.pkl')
     model_path = os.path.join(model_results_path, 'model.pth')
     FLAGS = load_flags(flags_path)
-    model = load_model_on_gpu(model_path, BarycentricNet, [FLAGS[param_name] 
+    model = load_model_on_gpu(model_path, BarycentricUNet, [FLAGS[param_name] 
                                                            for param_name in FLAGS['model_params_names']]).eval()
     
     batch_sizes = [1,2,4,8]

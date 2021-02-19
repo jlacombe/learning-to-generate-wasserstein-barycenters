@@ -1,4 +1,6 @@
-# Learning-Wasserstein-Embeddings
+Code adapted from https://github.com/mducoffe/Learning-Wasserstein-Embeddings
+
+# README of Learning-Wasserstein-Embeddings
 Keras implementation of Deep Wasserstein Embeddings ([Learning Wasserstein Embeddings](https://arxiv.org/abs/1710.07457)) which approximates the Wasserstein distance with an autoencoder.
 
 ## Prerequisite

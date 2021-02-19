@@ -172,7 +172,7 @@ def main():
         ['m',       'model_id', lambda x: x,            'model_id'],
         ['r',   'results_path', lambda x: x,            'results'],
         ['k',  'interpol_type', lambda x: x,            'line'], 
-        ['c',    'model_class', lambda x: x,            'BarycentricNet'], 
+        ['c',    'model_class', lambda x: x,            'BarycentricUNet'], 
         ['f',   'input_folder', lambda x: x,            'input_imgs'], 
         ['l',   'input_fnames', lambda x: x.split(','), []],
         ['t',  'target_folder', lambda x: x,            None], # default None = don't generate geomloss 
@@ -188,12 +188,12 @@ def main():
     ])
     
     # loading model
-    if args['model_class'] == 'BarycentricNet':
+    if args['model_class'] == 'BarycentricUNet':
         model_results_path = os.path.join('..', 'training_model', 'results', args['model_id'])
         flags_path = os.path.join(model_results_path, 'flags.pkl')
         model_path = os.path.join(model_results_path, 'model.pth')
         FLAGS = load_flags(flags_path)
-        model = load_model_on_gpu(model_path, BarycentricNet, 
+        model = load_model_on_gpu(model_path, BarycentricUNet, 
                                   [FLAGS[param_name] for param_name in 
                                                          FLAGS['model_params_names']]).eval()
         get_pbary = get_pbary_bunet(model)

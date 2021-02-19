@@ -42,7 +42,7 @@ def get_flags(batch_size):
         
                'eval_interval': 0.1, # evaluation every dataset_size * eval_inter iterations
         
-                  'model_type': BarycentricNet,
+                  'model_type': BarycentricUNet,
                 'with_skip_co': True,
           'model_params_names': ['nf', 'norm_params', 'with_skip_co']
           }

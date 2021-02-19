@@ -3,29 +3,39 @@ import torch
 import os
 import sys
 import matplotlib.pyplot as plt
+import cv2
 from matplotlib.gridspec import GridSpec
+
+# allows imports from parent directory
+parent_dir = os.path.dirname(os.getcwd())
+sys.path.insert(0, parent_dir)
 
 from bary_gen_util import *
 
-def build_polygon(poly_coords, slopes, n_iters, init_side_len,
+def build_polygon(poly_coords, slopes, n_iters, init_side_len, 
                   side_step, top_vertex_step, recenter_step):
     side_len = init_side_len+1
     for i in range(1,n_iters+1):
         # recenter
+#         print(poly_coords)
         for j in range(len(poly_coords)):
             poly_coords[j][0] += recenter_step[0]
             poly_coords[j][1] += recenter_step[1]
+#         print(poly_coords)
 
         # add new coords
         x, y = poly_coords[-1]
         x = x + top_vertex_step
+#         print(x,y)
         vertices = []
         for slope in slopes:
+#             print(slope)
             vertices.append([x,y])
             for j in range(side_len):
                 x += slope[0]
                 y += slope[1]
                 poly_coords.append([x,y])
+#             print(poly_coords)
 
         side_len += side_step
     poly_coords = np.array(poly_coords)
@@ -82,6 +92,8 @@ def build_barycentric_polygon(polygon, vertices, adj_list):
     positive_vals_indices = np.where(barycentric_polygon > 0.)
     barycentric_polygon[positive_vals_indices] = barycentric_polygon[positive_vals_indices] / \
                                                  barycentric_polygon.sum(axis=2)[positive_vals_indices[0:2]]
+#     barycentric_polygon = np.where(barycentric_polygon > 0., 
+#                                    barycentric_polygon / barycentric_polygon.sum(2,keepdims=True), 0.)
     
     return barycentric_polygon
 
@@ -145,76 +157,118 @@ def get_geomloss_targets_from_ids(targets_folder_path, shapes_ids):
     targets = load_targets(fnames_targets, targets_folder_path)
     return targets
 
-def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon, 
-                                      barycentric_polygon, img_side, 
-                                      n_iters, interpol_id='cats', results_path='.'):
-    cell_size = ins.shape[-1] // 2 # barycenter is represented by a 2x2 grid of cells
-    nrows = img_side
-    ncols = img_side
+def disp_bary_grayscale(ax, bary, vmin, vmax):
+    ax.imshow(bary, vmin=vmin, vmax=vmax, cmap='Greys')
 
+def gen_bary_from_targets_pdf(targets, bweights, ins_size):
+    rbary = gen_bary_from_targets(targets, bweights, ins_size).cpu().numpy()
+    rbary /= rbary.sum()
+    return rbary
+    
+def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon, 
+                                      barycentric_polygon, n_cells, 
+                                      n_iters, interpol_id='cats', 
+                                      results_path='.', 
+                                      disp_bary_func=disp_bary_grayscale,
+                                      get_rbary=gen_bary_from_targets_pdf,
+                                      max_res_per_img=None):
     # we have to do generation & display in 2 steps in order to get the correct vmin & vmax
     # before display
     # barycenter generation
+#     print('Generating barycenters...')
     vmin, vmax = np.inf, -np.inf
     if targets is not None:
         rbarys = [] 
     pbarys = []
-    for i in range(nrows):
-        for j in range(0,ncols):
+    for i in range(n_cells):
+        for j in range(0,n_cells):
             if (polygon[i][j] != 0.):
                 bweights = barycentric_polygon[i,j]
 
                 # with geomloss:
                 if targets is not None:
-                    rbary = gen_bary_from_targets(targets, bweights, ins.shape[-1])
-                    rbary /= rbary.sum()
+                    rbary = get_rbary(targets, bweights, ins.shape[-1])
 
                 # with model:
                 pbary = get_pbary(ins, bweights)
-
+                
                 if targets is not None:
                     rbarys.append(rbary)
                 pbarys.append(pbary)
+    
+    if (max_res_per_img is not None):
+        # we rescale images in order to have the maximum desired size
+        npix_row = pbary.shape[0]
+        npix_col = pbary.shape[1]
+        
+        if (max(npix_row, npix_col) > max_res_per_img): # only rescale if needed
+            if npix_row > npix_col:
+                rescaled_cv2_shape = ((max_res_per_img * npix_col) // npix_row,
+                                      max_res_per_img)
+            else:
+                rescaled_cv2_shape = (max_res_per_img,
+                                      (max_res_per_img * npix_row) // npix_col)
 
+            if targets is not None:
+                rbarys = [cv2.resize(rbary, dsize=rescaled_cv2_shape) 
+                          for rbary in rbarys]
+            pbarys = [cv2.resize(pbary, dsize=rescaled_cv2_shape) 
+                      for pbary in pbarys]
+    
+    row_cell_size = pbarys[0].shape[0]//2
+    col_cell_size = pbarys[0].shape[1]//2
     
     if targets is not None:
-        all_barys = torch.cat(rbarys).reshape(-1)#,torch.cat(pbarys).reshape(-1)))
+        all_barys = np.concatenate(rbarys).reshape(-1)
     else:
-        all_barys = torch.cat(pbarys).reshape(-1)
+        all_barys = np.concatenate(pbarys).reshape(-1)
+    
     vmin = np.percentile(all_barys[all_barys>0.],5)
     vmax = np.percentile(all_barys[all_barys>0.],95)
 
+    nrows = n_cells * row_cell_size
+    ncols = n_cells * col_cell_size
+
+#     print('Generating figures...')
     if targets is not None:
-        fig1 = plt.figure(figsize=(nrows,nrows), dpi=cell_size)
+        fig1 = plt.figure(figsize=(ncols/100,nrows/100), dpi=100)
         gs1 = GridSpec(nrows, ncols, figure=fig1)
-    fig2 = plt.figure(figsize=(nrows,nrows), dpi=cell_size)
+    fig2 = plt.figure(figsize=(ncols/100,nrows/100), dpi=100)
     gs2 = GridSpec(nrows, ncols, figure=fig2)
-    fig3 = plt.figure(figsize=(nrows,nrows), dpi=cell_size)
+    fig3 = plt.figure(figsize=(ncols/100,nrows/100), dpi=100)
     gs3 = GridSpec(nrows, ncols, figure=fig3)
     format_bweights = ''
     for i in range(ins.shape[1]):
         format_bweights += '{}\n'
-    for i in range(nrows):
-        for j in range(0,ncols):
+    for i in range(n_cells):
+        for j in range(n_cells):
             if (polygon[i][j] != 0.):
+                # figure row indices
+                r1 = i     * row_cell_size
+                r2 = (i+2) * row_cell_size
+                # figure column indices
+                c1 = j     * col_cell_size
+                c2 = (j+2) * col_cell_size
                 
                 # with geomloss:
                 if targets is not None:
                     rbary = rbarys.pop(0)
-                    ax1 = fig1.add_subplot(gs1[i:i+2,j:j+2]); ax1.axis('off')
-                    ax1.imshow(rbary, vmin=vmin, vmax=vmax, cmap='Greys')
+                    ax1 = fig1.add_subplot(gs1[r1:r2,c1:c2]); ax1.axis('off')
+                    disp_bary_func(ax1, rbary, vmin, vmax)
+#                     ax1.imshow(rbary, vmin=vmin, vmax=vmax, cmap='Greys')
 
                 # with model:
                 pbary = pbarys.pop(0)
-                ax2 = fig2.add_subplot(gs2[i:i+2,j:j+2]); ax2.axis('off')
-                ax2.imshow(pbary, vmin=vmin, vmax=vmax, cmap='Greys')
+                ax2 = fig2.add_subplot(gs2[r1:r2,c1:c2]); ax2.axis('off')
+                disp_bary_func(ax2, pbary, vmin, vmax)
+#                 ax2.imshow(pbary, vmin=vmin, vmax=vmax, cmap='Greys')
 
                 # display barycentric weights:
                 bweights = barycentric_polygon[i,j]
-                ax3 = fig3.add_subplot(gs3[i:i+2,j:j+2]); ax3.axis('off')
+                ax3 = fig3.add_subplot(gs3[r1:r2,c1:c2]); ax3.axis('off')
                 
-                ax3.text(0.5, 0.5, format_bweights.format(*[round(bweight,2) for bweight in bweights]),
-                         ha='center', va='center', fontsize='x-large')
+                ax3.text(0.5, 0.5, format_bweights.format(*[round(bweight,2) for bweight in bweights]), ha='center', va='center', fontsize=25)
+                # note: fontsize should not be constant
 
     # remove spaces & margins in order to have each image displayed as a img_size*img_size image
     # and to thus obtain a final (nrows*img_size)*(nrows*img_size) image. 
@@ -223,6 +277,7 @@ def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon,
     fig2.subplots_adjust(wspace=0, hspace=0, left=0, right=1, top=1, bottom=0)
     fig3.subplots_adjust(wspace=0, hspace=0, left=0, right=1, top=1, bottom=0)
     
+#     print('Saving figures...')
     if targets is not None:
         fig1.savefig(os.path.join(results_path, '{}{}_niters={}_geomloss.png'.format(ins.shape[1], interpol_id, n_iters)))
     fig2.savefig(os.path.join(results_path, '{}{}_niters={}_model.png'.format(ins.shape[1], interpol_id, n_iters)))
