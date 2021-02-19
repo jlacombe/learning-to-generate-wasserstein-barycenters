@@ -19,5 +19,6 @@ contours_barys_path="../datasets/barycenters_contours.h5"
 mkdir $results_XPs_path
 n_barys_runtimes=1000
 
-./run_runtimes_XP.sh $model_id $results_XPs_path $n_barys_runtimes -i $contours_input_path -r $contours_barys_path
+# uncomment next line if you want to reproduce runtimes experiment
+#./run_runtimes_XP.sh $model_id $results_XPs_path $n_barys_runtimes -i $contours_input_path -r $contours_barys_path
 ./run_interpolate_XP.sh $model_id $results_XPs_path $model_class $input_imgs_path $targets_path
