@@ -25,7 +25,7 @@ Pretrained models are available in the folder training_model/results and can be 
 ### Experiments
 Once our model has been trained, sketch interpolation experiments conducted in our paper can be reproduced using the following scripts:
 * experiments/create_geomloss_targets.sh : lets you create target points associated to the .png files stored in experiments/input_imgs. Some images are already provided in this folder. These are then used to compute GeomLoss barycenters;
-* experiments/run_all.sh : run runtimes and interpolations experiments. Interpolations experiments consist of interpolations between 2 or more inputs, with different display modes (line, triangle, pentagon, animation...). You can modify parameters of these experiments inside run_all.sh and run_interpolate_XP.sh. Results are saved in a sub-folder of the results folder. 
+* experiments/run_all.sh : run runtimes and interpolations experiments. Interpolations experiments consist of interpolations between 2 or more inputs, with different display modes (line, triangle, pentagon, animation...). You can modify parameters of these experiments inside run_all.sh and run_interpolate_XP.sh. Interpolation results are stored inside the corresponding model folder. 
 
 The comparison between our model and the Deep Wasserstein Embedding (DWE) method from https://arxiv.org/pdf/1710.07457.pdf can be done by first training such a model using the different .sh scripts we provide in the dwe folder, for instance dwe/run_randshapes.sh. The code inside the dwe folder corresponds to a modified version of https://github.com/mducoffe/Learning-Wasserstein-Embeddings. This DWE model also needs pairs of inputs with Wasserstein distance: this dataset can be created using the script wdists_generation/run_generate_wdists.sh
 Once the dataset has been created and the DWE has been trained, you can use the experiments/run_compare_error_models.sh to obtain a comparison of the approximation errors of our model VS DWE. The interpolation experiments can also be done with DWE. 
@@ -33,8 +33,8 @@ Once the dataset has been created and the DWE has been trained, you can use the 
 By default, experiments are done on 512x512 images, but you can adapt this resolution. The resolution which was used in DWE was for instance 28x28. 
 
 Finally, color transfer experiments can be reproduced following the next steps:
-* first we need to create the chrominance histograms datasets. In flickr_preprocessing, use python download_flickr_imgs.py to download flickr images of different categories. Note that in download_flickr_imgs.py you have to replace the values of KEY and SECRET with your own Flickr API keys. Once all images have been correctly downloaded, use python compute_chroma_bounds.py to compute and save the chrominance space boundaries which we are going to use the next scripts. Finally, you can use imgs_to_chrom_histos.py to create the chrominance histograms dataset;
-* you can then train the model on your dataset or consider the pretrained model;
+* first we need to create the chrominance histograms datasets. In flickr_preprocessing, use python download_flickr_imgs.py to download flickr images of different categories. Note that in download_flickr_imgs.py you have to replace the values of KEY and SECRET with your own Flickr API keys. Once all images have been correctly downloaded, use python compute_chroma_bounds.py to compute and save the chrominance space boundaries which we are going to use in the next scripts. Finally, you can use imgs_to_chrom_histos.py to create the chrominance histograms dataset;
+* you can then train the model on your dataset or just consider a pretrained model;
 * finally chrom_histograms_interpolation.py can be called with your own parameters (see main function). Results are stored in the experiments/chrominance_histograms folder. 
 
 
