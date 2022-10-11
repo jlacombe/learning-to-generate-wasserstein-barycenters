@@ -8,68 +8,79 @@ from torch import nn
 from model_util import *
 
 class BarycentricUNet(nn.Module):
-    def __init__(self, nf=16, norm_params=None, with_skip_co=True):
+    def __init__(self, nf=32, norm_params=None, with_skip_co=True):
         super(BarycentricUNet, self).__init__()
         self.with_skip_co = with_skip_co
         
         # external contractive path
-        self.external_encoder = nn.Sequential(                    # =>   1 x 512 x 512 (262 144)
-           *bloc_conv_relu(    1,    nf, 3, 1, 1, norm_params=norm_params), # =>  16 x 512 x 512
-           *bloc_conv_relu(   nf,    nf, 3, 1, 1, norm_params=norm_params), # =>  16 x 512 x 512
-              nn.AvgPool2d(2, 2),                                           # =>  16 x 256 x 256
+        self.external_encoder = nn.Sequential(                       # input size: 1 x 512 x 512 (262 144)
+           *bloc_conv_relu(    1,    nf, 3, 1, 1, norm_params=norm_params), # =>  32 x 512 x 512
+           *bloc_conv_relu(   nf,    nf, 3, 1, 1, norm_params=norm_params), # =>  32 x 512 x 512
+                                                                  # skip co [1] >------------...
+              nn.AvgPool2d(2, 2),                                           # =>  32 x 256 x 256
         
-           *bloc_conv_relu(   nf,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  32 x 256 x 256
-           *bloc_conv_relu( nf*2,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  32 x 256 x 256
-              nn.AvgPool2d(2, 2),                                           # =>  32 x 128 x 128
+           *bloc_conv_relu(   nf,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  64 x 256 x 256
+           *bloc_conv_relu( nf*2,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  64 x 256 x 256
+                                                                  # skip co [2] >------------...
+              nn.AvgPool2d(2, 2),                                           # =>  64 x 128 x 128
         
-           *bloc_conv_relu( nf*2,  nf*4, 3, 1, 1, norm_params=norm_params), # => 64 x 128 x 128
-           *bloc_conv_relu( nf*4,  nf*4, 3, 1, 1, norm_params=norm_params), # => 64 x 128 x 128
-              nn.AvgPool2d(    2,     2),                                   # => 64 x  64 x  64
+           *bloc_conv_relu( nf*2,  nf*4, 3, 1, 1, norm_params=norm_params), # => 128 x 128 x 128
+           *bloc_conv_relu( nf*4,  nf*4, 3, 1, 1, norm_params=norm_params), # => 128 x 128 x 128
+                                                                  # skip co [3] >------------...
+              nn.AvgPool2d(2, 2),                                           # => 128 x  64 x  64
         
-           *bloc_conv_relu( nf*4,  nf*8, 3, 1, 1, norm_params=norm_params), # => 128 x  64 x  64
-           *bloc_conv_relu( nf*8,  nf*8, 3, 1, 1, norm_params=norm_params), # => 128 x  64 x  64
-              nn.AvgPool2d(2, 2),                                           # => 128 x  32 x  32
+           *bloc_conv_relu( nf*4,  nf*8, 3, 1, 1, norm_params=norm_params), # => 256 x  64 x  64
+           *bloc_conv_relu( nf*8,  nf*8, 3, 1, 1, norm_params=norm_params), # => 256 x  64 x  64
+                                                                  # skip co [4] >------------...
+              nn.AvgPool2d(2, 2),                                           # => 256 x  32 x  32
             
-           *bloc_conv_relu( nf*8, nf*16, 3, 1, 1, norm_params=norm_params), # => 256 x  32 x  32
-           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 256 x  32 x  32
-              nn.AvgPool2d(2, 2),                                           # => 256 x  16 x  16
+           *bloc_conv_relu( nf*8, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  32 x  32
+           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  32 x  32
+                                                                  # skip co [5] >------------...
+              nn.AvgPool2d(2, 2),                                           # => 512 x  16 x  16
         )
         
         # inner contractive path
         self.inner_encoder = nn.Sequential(
-           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x   8 x   8 (32 768)
-           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x   8 x   8 (32 768)
+           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  16 x  16 (131 072)
+           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  16 x  16 (131 072)
         )
         
         # expansive path
         self.decoder = nn.Sequential(          
-           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x   8 x   8 (32 768)
-           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x   8 x   8
-                  UpSample(2),                                              # => 512 x  16 x  16
+           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  16 x  16 (131 072)
+           *bloc_conv_relu(nf*16, nf*16, 3, 1, 1, norm_params=norm_params), # => 512 x  16 x  16
+                  UpSample(2),                                              # => 512 x  32 x  32
         
-           *bloc_conv_relu(nf*16*(2 if self.with_skip_co else 1), 
-                           nf*16, 3, 1, 1, norm_params=norm_params), # => 256 x  32 x  32
-           *bloc_conv_relu(nf*16,  nf*8, 3, 1, 1, norm_params=norm_params), # => 128 x  32 x  32
-                  UpSample(2),                                              # => 128 x  64 x  64
+           *bloc_conv_relu(nf*16*(2 if self.with_skip_co else 1), # input size with skip co [5] concat: 
+                                                               # ...-----> (512+512) x  32 x  32
+                           nf*16, 3, 1, 1, norm_params=norm_params),        # => 512 x  32 x  32
+           *bloc_conv_relu(nf*16,  nf*8, 3, 1, 1, norm_params=norm_params), # => 256 x  32 x  32
+                  UpSample(2),                                              # => 256 x  64 x  64
         
-           *bloc_conv_relu(nf*8*(2 if self.with_skip_co else 1),  
-                           nf*8, 3, 1, 1, norm_params=norm_params), # => 128 x  64 x  64
-           *bloc_conv_relu( nf*8,  nf*4, 3, 1, 1, norm_params=norm_params), # =>  64 x  64 x  64
-                  UpSample(2),                                              # =>  64 x 128 x 128
+           *bloc_conv_relu(nf*8*(2 if self.with_skip_co else 1),  # input size with skip co [4] concat: 
+                                                               # ...-----> (256+256) x  64 x  64
+                           nf*8, 3, 1, 1, norm_params=norm_params),         # => 256 x  64 x  64
+           *bloc_conv_relu( nf*8,  nf*4, 3, 1, 1, norm_params=norm_params), # => 128 x  64 x  64
+                  UpSample(2),                                              # => 128 x 128 x 128
         
-           *bloc_conv_relu( nf*4*(2 if self.with_skip_co else 1), 
-                           nf*4, 3, 1, 1, norm_params=norm_params), # =>  64 x 128 x 128
-           *bloc_conv_relu( nf*4,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  32 x 128 x 128
-                  UpSample(2),                                              # =>  32 x 256 x 256
+           *bloc_conv_relu( nf*4*(2 if self.with_skip_co else 1), # input size with skip co [3] concat: 
+                                                               # ...-----> (128+128) x 128 x 128
+                           nf*4, 3, 1, 1, norm_params=norm_params),         # => 128 x 128 x 128
+           *bloc_conv_relu( nf*4,  nf*2, 3, 1, 1, norm_params=norm_params), # =>  64 x 128 x 128
+                  UpSample(2),                                              # =>  64 x 256 x 256
         
-           *bloc_conv_relu( nf*2*(2 if self.with_skip_co else 1),  
-                           nf*2, 3, 1, 1, norm_params=norm_params), # =>  32 x 256 x 256
-           *bloc_conv_relu( nf*2,    nf, 3, 1, 1, norm_params=norm_params), # =>  16 x 256 x 256
-                  UpSample(2),                                              # =>  16 x 512 x 512
+           *bloc_conv_relu( nf*2*(2 if self.with_skip_co else 1), # input size with skip co [2] concat: 
+                                                               # ...----->   (64+64) x 256 x 256
+                           nf*2, 3, 1, 1, norm_params=norm_params),         # =>  64 x 256 x 256
+           *bloc_conv_relu( nf*2,    nf, 3, 1, 1, norm_params=norm_params), # =>  32 x 256 x 256
+                  UpSample(2),                                              # =>  32 x 512 x 512
         
-           *bloc_conv_relu( nf*(2 if self.with_skip_co else 1),    
-                           nf, 3, 1, 1, norm_params=norm_params), # =>  16 x 512 x 512
-                 nn.Conv2d(   nf,     1, 3, 1, 1),                # =>   1 x 512 x 512 (262 144)
+           *bloc_conv_relu( nf*(2 if self.with_skip_co else 1),   # input size with skip co [1] concat: 
+                                                               # ...----->   (32+32) x 512 x 512
+                           nf, 3, 1, 1, norm_params=norm_params),           # =>  32 x 512 x 512
+                 nn.Conv2d(   nf,     1, 3, 1, 1),                          # =>   1 x 512 x 512
+                                                                  # sotfmax # =>   1 x 512 x 512 (262 144)
         )
     
     def compute_external_contractive_path(self, x, bary_weight):

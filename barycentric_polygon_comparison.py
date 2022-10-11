@@ -17,25 +17,20 @@ def build_polygon(poly_coords, slopes, n_iters, init_side_len,
     side_len = init_side_len+1
     for i in range(1,n_iters+1):
         # recenter
-#         print(poly_coords)
         for j in range(len(poly_coords)):
             poly_coords[j][0] += recenter_step[0]
             poly_coords[j][1] += recenter_step[1]
-#         print(poly_coords)
 
         # add new coords
         x, y = poly_coords[-1]
         x = x + top_vertex_step
-#         print(x,y)
         vertices = []
         for slope in slopes:
-#             print(slope)
             vertices.append([x,y])
             for j in range(side_len):
                 x += slope[0]
                 y += slope[1]
                 poly_coords.append([x,y])
-#             print(poly_coords)
 
         side_len += side_step
     poly_coords = np.array(poly_coords)
@@ -92,8 +87,6 @@ def build_barycentric_polygon(polygon, vertices, adj_list):
     positive_vals_indices = np.where(barycentric_polygon > 0.)
     barycentric_polygon[positive_vals_indices] = barycentric_polygon[positive_vals_indices] / \
                                                  barycentric_polygon.sum(axis=2)[positive_vals_indices[0:2]]
-#     barycentric_polygon = np.where(barycentric_polygon > 0., 
-#                                    barycentric_polygon / barycentric_polygon.sum(2,keepdims=True), 0.)
     
     return barycentric_polygon
 
@@ -109,7 +102,6 @@ def get_barycentric_triangle(n_iters, show=True):
 
     triangle_coords, vertices = build_polygon(triangle_coords, triangle_slopes, n_iters, init_side_len,
                                               side_step, top_vertex_step, recenter_step)
-    # print(triangle_coords)
     triangle = get_polygon_matrix(img_side, n_iters, triangle_coords, init_val)
     if show:
         plt.figure();plt.imshow(triangle,cmap='Greys');plt.show()
@@ -175,7 +167,6 @@ def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon,
     # we have to do generation & display in 2 steps in order to get the correct vmin & vmax
     # before display
     # barycenter generation
-#     print('Generating barycenters...')
     vmin, vmax = np.inf, -np.inf
     if targets is not None:
         rbarys = [] 
@@ -229,7 +220,6 @@ def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon,
     nrows = n_cells * row_cell_size
     ncols = n_cells * col_cell_size
 
-#     print('Generating figures...')
     if targets is not None:
         fig1 = plt.figure(figsize=(ncols/100,nrows/100), dpi=100)
         gs1 = GridSpec(nrows, ncols, figure=fig1)
@@ -255,13 +245,11 @@ def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon,
                     rbary = rbarys.pop(0)
                     ax1 = fig1.add_subplot(gs1[r1:r2,c1:c2]); ax1.axis('off')
                     disp_bary_func(ax1, rbary, vmin, vmax)
-#                     ax1.imshow(rbary, vmin=vmin, vmax=vmax, cmap='Greys')
 
                 # with model:
                 pbary = pbarys.pop(0)
                 ax2 = fig2.add_subplot(gs2[r1:r2,c1:c2]); ax2.axis('off')
                 disp_bary_func(ax2, pbary, vmin, vmax)
-#                 ax2.imshow(pbary, vmin=vmin, vmax=vmax, cmap='Greys')
 
                 # display barycentric weights:
                 bweights = barycentric_polygon[i,j]
@@ -277,7 +265,6 @@ def build_barycentric_polygon_figures(ins, targets, get_pbary, polygon,
     fig2.subplots_adjust(wspace=0, hspace=0, left=0, right=1, top=1, bottom=0)
     fig3.subplots_adjust(wspace=0, hspace=0, left=0, right=1, top=1, bottom=0)
     
-#     print('Saving figures...')
     if targets is not None:
         fig1.savefig(os.path.join(results_path, '{}{}_niters={}_geomloss.png'.format(ins.shape[1], interpol_id, n_iters)))
     fig2.savefig(os.path.join(results_path, '{}{}_niters={}_model.png'.format(ins.shape[1], interpol_id, n_iters)))

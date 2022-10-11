@@ -120,11 +120,6 @@ def gen_barycenter(input_measures, bweights, Loss, M, N, device, ngrad_iters=1, 
     
     :param input_measures: the list of the measures
     '''
-#     input_measures = []
-#     for input_path in inputs_paths:
-#         input_measure = as_measure_from_path(input_path, M, device)
-#         input_measures.append(input_measure)
-    
     bary_coords = grid(N, device).view(-1,2)
     bary_weights = (torch.ones(N*N) / (N*N)).type_as(bary_coords)
     bary_coords.requires_grad = True
@@ -136,7 +131,6 @@ def gen_barycenter(input_measures, bweights, Loss, M, N, device, ngrad_iters=1, 
             [gradient] = torch.autograd.grad(loss_val, [bary_coords])
             displacement_vector = lr * (-gradient / bary_weights.view(-1,1))
             displacement_vectors.append(displacement_vector)
-#         print(loss_val.item())
         bary_coords = bary_coords + displacement_vectors[0] * bweights[0] #+ targets[1] * bweights[1]
         
         for j in range(1,len(bweights)):

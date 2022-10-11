@@ -115,7 +115,7 @@ def compare_real_pred(test_loader, model, n_samples=5,
                 ax = fig.add_subplot(gs[i:i+n_dpi_per_img,n_dpi_per_img*2:n_dpi_per_img*2+1]); ax.axis('off')
             
             ticks = np.linspace(vmin, vmax, 5)
-            cbar = fig.colorbar(pc, ticks=ticks, pad=-5.)
+            cbar = fig.colorbar(pc, ax=ax, ticks=ticks)#, pad=-5.)
             cbar.ax.tick_params(labelsize=22)
             cbar.update_ticks()
 
@@ -300,7 +300,7 @@ def train_model(FLAGS, loaders, model, save=True,
                                                                model, device)
                 evo_eval_loss.append(mean_eval_loss)
                 for i in range(len(evos_eval_metrics)):
-                    evos_eval_metrics[i].append(mean_eval_metrics[i])
+                    evos_eval_metrics[i].append(mean_eval_metrics[i].item())
 
                 # trace current iteration
                 cur_trace_line = iter_format.format(
