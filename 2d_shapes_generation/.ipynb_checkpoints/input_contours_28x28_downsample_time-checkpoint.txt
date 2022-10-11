@@ -1,1 +1,0 @@
-Elapsed Time: 2.16s to downsample 100 images
