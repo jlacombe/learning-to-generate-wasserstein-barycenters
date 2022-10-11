@@ -44,7 +44,6 @@ def interpolate_3x3_shapes_grid(all_bary_evo, interval):
         for i in range(9):
             bary_evo, vmin, vmax = all_bary_evo[i]
             im = ax[i//3][i%3].imshow(bary_evo[0], vmin=vmin, vmax=vmax, cmap='Greys')
-#             ax[i//3][i%3].axis('off')
             ims.append(im)
         return ims
 
@@ -53,7 +52,6 @@ def interpolate_3x3_shapes_grid(all_bary_evo, interval):
         for i in range(9):
             bary_evo, vmin, vmax = all_bary_evo[i]
             im = ax[i//3][i%3].imshow(bary_evo[j], vmin=vmin, vmax=vmax, cmap='Greys')
-#             ax[i//3][i%3].axis('off')
             ims.append(im)
         return ims
 
@@ -102,10 +100,7 @@ def build_anim(samples, n_frames_per_bary=4): # samples = list of tuples (in1, i
         for j in range(n_samples):
             bary_fig = all_bary_fig[j]
             (in1, in2), barys = samples[j]
-            
             bary_idx = math.floor(i / n_frames_per_bary)
-            # print('i={} / {}'.format(i, n_frames_per_bary))
-            # print('bary_idx={}'.format(bary_idx))
             bary_fig.set_data(barys[bary_idx])
         txt_str = 'grad_iter={}'.format(bary_idx+1)
         ax[0][2].text(1.05, 1.5, txt_str, transform=ax[0][2].transAxes, 
