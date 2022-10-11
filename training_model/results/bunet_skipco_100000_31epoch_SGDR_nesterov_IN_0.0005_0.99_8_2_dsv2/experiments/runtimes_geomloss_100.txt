@@ -1,0 +1,13 @@
+GEOMLOSS RUNTIMES -- n_barys=100
+
+DENSE GEOMLOSS RUNTIMES:
+             data_time: 3.3525s
+      total model_time: 116.8952s
+model_time for 1 wbary: 1.1690s
+            total_time: 120.2793s
+
+SPARSE GEOMLOSS RUNTIMES:
+             data_time: 0.6340s
+      total model_time: 150.3598s
+model_time for 1 wbary: 1.5036s
+            total_time: 151.0500s
