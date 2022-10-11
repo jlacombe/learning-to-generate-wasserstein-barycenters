@@ -10,6 +10,7 @@ import numpy as np
 import pylab as pl
 import scipy as sp
 import ot
+import os
 import h5py
 
 from tensorflow.keras.models import load_model
@@ -231,9 +232,6 @@ def get_PCA(dataset_name, feat, unfeat, repo, n_components=4, n_directions=3):
     pl.clf()
     for i in range(5):
         for j in range(n_directions):
-            #print((n_directions,n_directions+n_directions*i))
-            #pl.subplot(nbv,n_directions,1+n_directions+n_directions*i)
-            #print(n_directions, nbv+1, 1+nbv+n_directions*i)
             pl.subplot(nbv, n_directions, 1+j+n_directions*i)
             pl.imshow(pca_list[0][i][j], cmap='Blues',interpolation='nearest')
             pl.xticks(())
@@ -241,8 +239,7 @@ def get_PCA(dataset_name, feat, unfeat, repo, n_components=4, n_directions=3):
             if i==0:
                 pl.title('{} {}'.format('DWE',j+1))            
     pl.tight_layout()
-    #pl.savefig("imgs/{}_wpca_{}.png".format(expe,c))
-# TO DO: better subplot
+    
 #%%    
 def bilinear_interpolation(dataset_name, feat, unfeat, repo, nbt=7):
     
@@ -258,17 +255,6 @@ def bilinear_interpolation(dataset_name, feat, unfeat, repo, nbt=7):
     
     tuple_index=np.random.permutation(N)[:4]
     embeddings = feat.predict(xtest1[tuple_index])
-    
-    # DEBUG
-#     for i in range(len(tuple_index)):
-#         pl.figure()
-#         pl.imshow(xtest1[tuple_index[i]][:,:,0],cmap='Greys')
-#         pl.savefig('test{}.png'.format(i))
-#         pl.figure()
-#         emb = feat.predict(xtest1[tuple_index[i]][None])
-#         rec = unfeat.predict(emb)
-#         pl.imshow(rec[0,:,:,0], cmap='Greys')
-#         pl.savefig('rec{}.png'.format(i))
     
     interp_array = np.zeros((nbt, nbt, n, n))
     
@@ -288,7 +274,6 @@ def bilinear_interpolation(dataset_name, feat, unfeat, repo, nbt=7):
     for i in range(nbt):
         for j in range(nbt):
             nb=i*nbt +j+1
-#             pl.subplot(nbt*100+(nbt)*10 +nb)
             axes[i][j].imshow(interp_array[i,j], cmap='Greys',interpolation='nearest', vmin=vmin, vmax=vmax)
             axes[i][j].axis('off')
     fig.savefig("imgs/{}_dwe_interpol.png".format(dataset_name))
@@ -298,7 +283,7 @@ def bilinear_interpolation(dataset_name, feat, unfeat, repo, nbt=7):
 if __name__=="__main__":
     
     import tensorflow as tf
-    import tensorflow.keras.backend as tfback
+    import tensorflow.keras.backend as K
     print("tf.__version__ is", tf.__version__)
     print("tf.keras.__version__ is:", tf.keras.__version__)
 
@@ -308,15 +293,18 @@ if __name__=="__main__":
         # Returns
             A list of available GPU devices.
         """
-        #global _LOCAL_DEVICES
-        if tfback._LOCAL_DEVICES is None:
+        if K._LOCAL_DEVICES is None:
             devices = tf.config.list_logical_devices()
-            tfback._LOCAL_DEVICES = [x.name for x in devices]
-        return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
+            K._LOCAL_DEVICES = [x.name for x in devices]
+        return [x for x in K._LOCAL_DEVICES if 'device:gpu' in x.lower()]
 
-    tfback._get_available_gpus = _get_available_gpus
+    K._get_available_gpus = _get_available_gpus
     
     import argparse
+    
+    if not os.path.exists('imgs'):
+        os.makedirs('imgs')
+    
     parser = argparse.ArgumentParser(description='Dataset')
     parser.add_argument('--dataset_name', type=str, default='cat', help='dataset name')
     parser.add_argument('--method_name', type=str, default='INTERPOLATION', help='number of pairwise emd')

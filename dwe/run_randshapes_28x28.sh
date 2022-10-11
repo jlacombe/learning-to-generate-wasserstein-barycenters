@@ -1,8 +1,17 @@
 #!/bin/bash
 # usage: ./run_randshapes_28x28.sh
-python run_emd.py --dataset_name "input_contours_28x28" --n_pairwise  9000 --train True  --n_iter=10
-python run_emd.py --dataset_name "input_contours_28x28" --n_pairwise 10000 --train False --n_iter=1
-python build_model.py --dataset_name "input_contours_28x28" --embedding_size 50 --batch_size 32 --epochs 100
-python test_model.py --dataset_name "input_contours_28x28" --method_name MSE
-python test_model.py --dataset_name "input_contours_28x28" --method_name BARYCENTER
-python test_model.py --dataset_name "input_contours_28x28" --method_name INTERPOLATION
+dataset_id="randshapes_28x28"
+train_nd=90000
+train_nfiles=10
+eval_nd=100000
+eval_nfiles=1
+emb_size=50
+bs=32
+epochs=100
+
+python run_emd.py --dataset_name $dataset_id --n_pairwise  $train_nd --train True  --n_iter=$train_nfiles
+python run_emd.py --dataset_name $dataset_id --n_pairwise $eval_nd --train False --n_iter=$eval_nfiles
+python build_model.py --dataset_name $dataset_id --embedding_size $emb_size --batch_size $bs --epochs $epochs
+python test_model.py --dataset_name $dataset_id --method_name MSE
+python test_model.py --dataset_name $dataset_id --method_name BARYCENTER
+python test_model.py --dataset_name $dataset_id --method_name INTERPOLATION

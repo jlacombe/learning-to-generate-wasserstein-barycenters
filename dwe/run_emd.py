@@ -24,12 +24,12 @@ CAT='cat'
 CRAB='crab'
 FACE='face'
 REPO='data'
-CONTOURS_28X28='input_shapes_28x28_v2'
+RANDSHAPES_28X28='randshapes_28x28'
 #%%
 
 def run_emd(dataset_name='mnist', train=True, n_pairwise=1000000, n_iter=1, n_proc=None):
     
-    assert dataset_name in [MNIST, CAT, CRAB, FACE, CONTOURS_28X28], 'unknown dataset {}'.format(dataset_name)
+    assert dataset_name in [MNIST, CAT, CRAB, FACE, RANDSHAPES_28X28], 'unknown dataset {}'.format(dataset_name)
     
     if n_proc is None:
         import multiprocessing
@@ -46,7 +46,7 @@ def run_emd(dataset_name='mnist', train=True, n_pairwise=1000000, n_iter=1, n_pr
             _, (x_test, _) = mnist.load_data()
             xapp=x_test.reshape((len(x_test),-1))*1.0
             
-    if dataset_name in [CAT, CRAB, FACE, CONTOURS_28X28]:
+    if dataset_name in [CAT, CRAB, FACE, RANDSHAPES_28X28]:
         n=28
         if dataset_name in [CAT, CRAB, FACE]:
             url_path = "https://console.cloud.google.com/storage/browser/quickdraw_dataset/full/numpy_bitmap"
@@ -72,14 +72,11 @@ def run_emd(dataset_name='mnist', train=True, n_pairwise=1000000, n_iter=1, n_pr
     ###################################################################""
             
     N = len(xapp)
-#     print(N)
-#     print(xapp.shape)
     xapp/=xapp.sum(1).reshape((-1,1))
     xx,yy=np.meshgrid(np.arange(n),np.arange(n))
     xy=np.hstack((xx.reshape(-1,1),yy.reshape(-1,1)))
     
     M=ot.dist(xy, xy)
-    print(N)
     for i in range(n_iter):
         isource=np.random.randint(0,N,n_pairwise)
         itarget=np.random.randint(0,N,n_pairwise)
@@ -88,7 +85,6 @@ def run_emd(dataset_name='mnist', train=True, n_pairwise=1000000, n_iter=1, n_pr
         
         ilist=range(n_pairwise)
         D2=np.array(ot.utils.parmap(compute_emd,ilist,n_proc))
-        print(D2.shape)
         
         spio.savemat('{}/{}_{}_{}.mat'.format(REPO, dataset_name, 'train' if train else 'test', i),{'is':isource,'it':itarget,'D':D2})
         

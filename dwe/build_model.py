@@ -7,6 +7,8 @@ Created on Fri Mar 16 10:59:48 2018
 """
 import os
 import h5py
+import tensorflow as tf
+import atexit
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential,Model
 from tensorflow.keras.layers import Dense, Activation
@@ -22,7 +24,6 @@ MODEL='models'
 MODEL_ORIG = 'model_orig'
 MODEL_512x512 = 'model_512x512'
 
-#%%
 def euclidean_distance(vects):
     x, y = vects
     return K.sum(K.square(x - y), axis=(1), keepdims=True)
@@ -59,10 +60,11 @@ def add_block_2conv_upsample(model, filters1, filters2, kernel_size, up_size):
     model.add(UpSampling2D(size=up_size, interpolation='nearest'))
     add_block_conv_inorm_relu(model, filters1, kernel_size)
     add_block_conv_inorm_relu(model, filters2, kernel_size)
-    
+
 def build_model(image_shape=(28,28), embedding_size=50, model_id=MODEL_ORIG):
     s = image_shape[-1]
     feat=Sequential()
+    
     if model_id == MODEL_ORIG:
         feat.add(Conv2D(20,(3,3),
                 activation='relu',padding='same',
@@ -72,33 +74,31 @@ def build_model(image_shape=(28,28), embedding_size=50, model_id=MODEL_ORIG):
         feat.add(Dense(100))
         feat.add(Dense(embedding_size))
     else:
-        nf = 16
-        # DEBUG MODEL
-#         add_block_conv_inorm_relu(feat,  nf, (3,3), input_shape=(s, s, 1))
-#         feat.add(Flatten())
+        nf = 16                                      # input size: 1 x 512 x 512 (262 144)
+        add_block_conv_inorm_relu(feat,  nf, (3,3), 
+                                  input_shape=(s, s, 1))    # =>  16 x 512 x 512
+        add_block_2conv_avgpool(feat,    nf, (3,3), (2,2))  # =>  16 x 256 x 256
+        add_block_2conv_avgpool(feat,  nf*2, (3,3), (2,2))  # =>  32 x 128 x 128
+        add_block_2conv_avgpool(feat,  nf*4, (3,3), (2,2))  # =>  64 x  64 x  64
+        add_block_2conv_avgpool(feat,  nf*8, (3,3), (2,2))  # => 128 x  32 x  32
+        add_block_2conv_avgpool(feat, nf*16, (3,3), (2,2))  # => 256 x  16 x  16
         
-        add_block_conv_inorm_relu(feat,  nf, (3,3), input_shape=(s, s, 1))
-        add_block_2conv_avgpool(feat,    nf, (3,3), (2,2))
-        add_block_2conv_avgpool(feat,  nf*2, (3,3), (2,2))
-        add_block_2conv_avgpool(feat,  nf*4, (3,3), (2,2))
-        add_block_2conv_avgpool(feat,  nf*8, (3,3), (2,2))
-        add_block_2conv_avgpool(feat, nf*16, (3,3), (2,2))
+        add_block_conv_inorm_relu(feat, nf*16, (3,3))       # => 256 x  16 x  16
+        add_block_conv_inorm_relu(feat, nf*16, (3,3))       # => 256 x  16 x  16
+        feat.add(Flatten())                                 # => 65 536
         
-        add_block_conv_inorm_relu(feat, nf*16, (3,3))
-        add_block_conv_inorm_relu(feat, nf*16, (3,3))
-        feat.add(Flatten())
-        
-
+    
     inp1=Input(shape=(s,s,1))
     inp2=Input(shape=(s,s,1))
-
+    
     feat1=feat(inp1)
     feat2=feat(inp2)
-
+    
     distance = Lambda(euclidean_distance,
                       output_shape=eucl_dist_output_shape)([feat1, feat2])
 
     feat.compile('sgd','mse')
+    
     model=Model([inp1,inp2],distance)
     model.compile('adam','mse')
     
@@ -109,27 +109,22 @@ def build_model(image_shape=(28,28), embedding_size=50, model_id=MODEL_ORIG):
         unfeat.add(Dense(100, input_shape=(input_dim,), activation='relu'))
         unfeat.add(Dense(5*s*s, activation='relu'))
         unfeat.add(Reshape((s,s,5)))
-        unfeat.add(Conv2D(10,(5,5),activation='relu', padding='same'))#data_format='channels_first'))
-        unfeat.add(Conv2D(1,(3,3),activation='linear', padding='same'))#data_format='channels_first'))
+        unfeat.add(Conv2D(10,(5,5),activation='relu', padding='same'))
+        unfeat.add(Conv2D(1,(3,3),activation='linear', padding='same'))
     else:
-        nf = 16
-        # DEBUG MODEL
-#         unfeat.add(Reshape((s,s,nf)))
-#         add_block_conv_inorm_relu(unfeat,  1, (3,3))
+        nf = 16                                              # input size: 65 536
+        unfeat.add(Reshape((16,16,nf*16)))                            # => 256 x  16 x  16
+        add_block_conv_inorm_relu(unfeat, nf*16, (3,3))               # => 256 x  16 x  16
+        add_block_conv_inorm_relu(unfeat, nf*16, (3,3))               # => 256 x  16 x  16
         
-        # MODEL
-        unfeat.add(Reshape((16,16,nf*16)))
-        add_block_conv_inorm_relu(unfeat, nf*16, (3,3))
-        add_block_conv_inorm_relu(unfeat, nf*16, (3,3))
+        add_block_2conv_upsample(unfeat, nf*16, nf*8, (3,3), (2,2))   # => 128 x  32 x  32
+        add_block_2conv_upsample(unfeat , nf*8, nf*4, (3,3), (2,2))   # =>  64 x  64 x  64
+        add_block_2conv_upsample(unfeat,  nf*4, nf*2, (3,3), (2,2))   # =>  32 x 128 x 128
+        add_block_2conv_upsample(unfeat,  nf*2,   nf, (3,3), (2,2))   # =>  16 x 256 x 256
         
-        add_block_2conv_upsample(unfeat, nf*16, nf*8, (3,3), (2,2))
-        add_block_2conv_upsample(unfeat , nf*8, nf*4, (3,3), (2,2))
-        add_block_2conv_upsample(unfeat,  nf*4, nf*2, (3,3), (2,2))
-        add_block_2conv_upsample(unfeat,  nf*2,   nf, (3,3), (2,2))
-        
-        unfeat.add(UpSampling2D(size=(2,2), interpolation='nearest'))
-        add_block_conv_inorm_relu(unfeat, nf, (3,3))
-        add_block_conv_inorm_relu(unfeat,  1, (3,3))
+        unfeat.add(UpSampling2D(size=(2,2), interpolation='nearest')) # =>  16 x 512 x 512
+        add_block_conv_inorm_relu(unfeat, nf, (3,3))                  # =>  16 x 512 x 512
+        add_block_conv_inorm_relu(unfeat,  1, (3,3))                  # =>   1 x 512 x 512
         
     unfeat.add(Flatten())
     unfeat.add(Activation('softmax')) # samples are probabilities
@@ -174,7 +169,8 @@ def train_DWE(dataset_name=MNIST, repo=REPO, embedding_size=50, image_shape=(28,
         model = dict_models['dwe']
     
     earlystop=EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
-    saveweights=ModelCheckpoint('{}/{}_autoencoder'.format(MODEL,dataset_name), monitor='val_loss', verbose=0, save_best_only=True, mode='auto')
+    saveweights=ModelCheckpoint('{}/{}_autoencoder'.format(MODEL,dataset_name), 
+                                monitor='val_loss', verbose=0, save_best_only=True, mode='auto')
     csv_logger = CSVLogger('dwe_training.log')
     
     model.fit(myGenerator(),steps_per_epoch=steps_per_epoch,
@@ -185,6 +181,9 @@ def train_DWE(dataset_name=MNIST, repo=REPO, embedding_size=50, image_shape=(28,
     
     for key in dict_models:
         dict_models[key].save('{}/{}_{}.hd5'.format(MODEL, dataset_name, key))
+    
+    # explicitely close the pool
+    atexit.register(strategy._extended._collective_ops._pool.close)
 
 def train_DWE_randshapes(shapes_fpath, wdists_fpath, embedding_size=50, image_shape=(512,512), 
                          batch_size=100, epochs=100, n_data=100000, 
@@ -227,6 +226,9 @@ def train_DWE_randshapes(shapes_fpath, wdists_fpath, embedding_size=50, image_sh
     for key in dict_models:
         dict_models[key].save('{}/{}_{}.hd5'.format(MODEL, dataset_name, key))
     
+    # explicitely close the pool
+    atexit.register(strategy._extended._collective_ops._pool.close)
+    
 #%%    
 if __name__=="__main__":
     
@@ -234,33 +236,25 @@ if __name__=="__main__":
     import tensorflow.keras.backend as tfback
     print("tf.__version__ is", tf.__version__)
     print("tf.keras.__version__ is:", tf.keras.__version__)
-
-    def _get_available_gpus():
-        """Get a list of available gpu devices (formatted as strings).
-
-        # Returns
-            A list of available GPU devices.
-        """
-        #global _LOCAL_DEVICES
-        if tfback._LOCAL_DEVICES is None:
-            devices = tf.config.list_logical_devices()
-            tfback._LOCAL_DEVICES = [x.name for x in devices]
-        return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
-
-    tfback._get_available_gpus = _get_available_gpus
     
     import argparse
     parser = argparse.ArgumentParser(description='Dataset')
-    parser.add_argument('--dataset_name', type=str, default='cat', help='dataset name')
+    parser.add_argument('--dataset_name', type=str, default='cat', 
+                        help='dataset name')
     parser.add_argument('--repo', type=str, default=REPO, help='repository')
-    parser.add_argument('--shapes_fpath', type=str, default=REPO, help='shapes repository (for dataset randshapes)')
-    parser.add_argument('--wdists_fpath', type=str, default=REPO, help='wdist repository (for dataset randshapes)')
-    parser.add_argument('--n_data', type=int, default=100000, help='#data (for dataset randshapes)')
-    parser.add_argument('--embedding_size', type=int, default=50, help='embedding size')
+    parser.add_argument('--shapes_fpath', type=str, default=REPO, 
+                        help='shapes repository (for dataset randshapes)')
+    parser.add_argument('--wdists_fpath', type=str, default=REPO, 
+                        help='wdist repository (for dataset randshapes)')
+    parser.add_argument('--n_data', type=int, default=100000, 
+                        help='#data (for dataset randshapes)')
+    parser.add_argument('--embedding_size', type=int, default=50, 
+                        help='embedding size')
     parser.add_argument('--batch_size', type=int, default=10)
     parser.add_argument('--epochs', type=int, default=1)
     
-    args = parser.parse_args()                                                                                                                                                                                                                             
+    args = parser.parse_args()
+    
     dataset_name=args.dataset_name
     repo=args.repo
     shapes_fpath=args.shapes_fpath
@@ -271,6 +265,8 @@ if __name__=="__main__":
     epochs=args.epochs
     
     if dataset_name == RANDSHAPES:
-        train_DWE_randshapes(shapes_fpath, wdists_fpath, embedding_size, batch_size=batch_size, epochs=epochs, n_data=n_data)
+        train_DWE_randshapes(shapes_fpath, wdists_fpath, embedding_size, 
+                             batch_size=batch_size, epochs=epochs, n_data=n_data)
     else:
-        train_DWE(dataset_name, repo, embedding_size, batch_size=batch_size, epochs=epochs)
+        train_DWE(dataset_name, repo, embedding_size, 
+                  batch_size=batch_size, epochs=epochs)

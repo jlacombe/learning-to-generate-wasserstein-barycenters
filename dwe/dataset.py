@@ -21,7 +21,7 @@ CAT='cat'
 CRAB='crab'
 FACE='face'
 REPO='data'
-CONTOURS_28X28='input_shapes_28x28_v2'
+RANDSHAPES_28X28='randshapes_28x28'
 #%%
 
 def get_pairwise_index(dataset_name='mnist',repo='data', train=True):
@@ -54,7 +54,7 @@ def get_pairwise_index(dataset_name='mnist',repo='data', train=True):
 #%%
 def get_data(dataset_name='mnist', repo='data', labels=False):
     
-    assert dataset_name in [MNIST, CAT, CRAB, FACE, CONTOURS_28X28], 'unknown dataset {}'.format(dataset_name)
+    assert dataset_name in [MNIST, CAT, CRAB, FACE, RANDSHAPES_28X28], 'unknown dataset {}'.format(dataset_name)
     
     if dataset_name==MNIST:
         n = 28
@@ -88,7 +88,7 @@ def get_data(dataset_name='mnist', repo='data', labels=False):
                           y_train[i1_train[n_train:]], y_train[i2_train[n_train:]])
             data_test = (X_train[i1_test], X_train[i2_test], emd_test, y_test[i1_test], y_test[i2_test])
             
-    if dataset_name in [CAT, CRAB, FACE, CONTOURS_28X28]:
+    if dataset_name in [CAT, CRAB, FACE, RANDSHAPES_28X28]:
         n=28
         if dataset_name in [CAT, CRAB, FACE]:
             #assert files are alerady download, otherwise download them
