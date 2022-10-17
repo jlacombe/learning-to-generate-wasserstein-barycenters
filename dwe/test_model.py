@@ -79,12 +79,13 @@ def load_randshapes_data():
     return xtest1, xtest2, ytest
     
 def get_MSE(dataset_name, emd, repo):
+    print('GET_MSE')
     if dataset_name == RANDSHAPES:
         xtest1, xtest2, ytest = load_randshapes_data()
     else:
         _, _, test=get_data(dataset_name, repo)
         xtest1, xtest2, ytest = test
-        
+    print('')
     ot.tic()
     ytest_pred=emd.predict([xtest1,xtest2])
     t_est=ot.toc()
@@ -286,19 +287,6 @@ if __name__=="__main__":
     import tensorflow.keras.backend as K
     print("tf.__version__ is", tf.__version__)
     print("tf.keras.__version__ is:", tf.keras.__version__)
-
-    def _get_available_gpus():
-        """Get a list of available gpu devices (formatted as strings).
-
-        # Returns
-            A list of available GPU devices.
-        """
-        if K._LOCAL_DEVICES is None:
-            devices = tf.config.list_logical_devices()
-            K._LOCAL_DEVICES = [x.name for x in devices]
-        return [x for x in K._LOCAL_DEVICES if 'device:gpu' in x.lower()]
-
-    K._get_available_gpus = _get_available_gpus
     
     import argparse
     
@@ -316,7 +304,3 @@ if __name__=="__main__":
     repo=args.repo
     compute(method_name=method_name, dataset_name=dataset_name, repo=REPO)
     
-        
-    
-    
-

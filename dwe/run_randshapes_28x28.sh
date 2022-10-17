@@ -1,9 +1,9 @@
 #!/bin/bash
 # usage: ./run_randshapes_28x28.sh
 dataset_id="randshapes_28x28"
-train_nd=90000
+train_nd=9000
 train_nfiles=10
-eval_nd=100000
+eval_nd=10000
 eval_nfiles=1
 emb_size=50
 bs=32

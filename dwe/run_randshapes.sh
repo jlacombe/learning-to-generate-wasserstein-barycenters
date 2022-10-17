@@ -8,5 +8,3 @@ bs=8
 epochs=31
 
 python build_model.py --dataset_name $dataset_id --shapes_fpath $shapes_fpath --wdists_fpath $wdists_fpath --n_data $nd --batch_size $bs --epochs $epochs
-python test_model.py --dataset_name $dataset_id --method_name MSE
-python test_model.py --dataset_name $dataset_id --method_name INTERPOLATION
