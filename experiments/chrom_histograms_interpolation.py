@@ -326,7 +326,6 @@ def main():
                'landscape8', 'landscape5', 'landscape17']
     
     n_iters = 2 # number of iterations used to build polygon figure. eg for triangles:
-                # 0 iter => isobary
                 # 1 iter => triangle around isobary
                 # 2 iter => triangle around triangle around isobary
                 # etc ...

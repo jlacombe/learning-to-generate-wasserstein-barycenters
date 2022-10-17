@@ -179,7 +179,7 @@ The interpolation experiments can also be done with a DWE model. To do so:
 2. open `run_all.sh` and:
     - comment the parameters associated to the BarycentricUNet model and uncomment the ones associated to the DWE model;
     - set `model_id` to the id of the DWE model you want to use for the experiments;
-    - you can also comment the line associated to the runtimes experiment if not needed. 
+    - comment the line associated to the runtimes experiment. 
 3. execute `run_all.sh`;
 4. by default the results are stored in `./results/DWE_$model_id`.
 
