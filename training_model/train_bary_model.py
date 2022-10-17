@@ -56,7 +56,7 @@ def main():
     barys_fpath  = os.path.join('..', 'datasets', 'barycenters_contours.h5')
     
     train_part, valid_part, test_part = 0.8, 0.1, 0.1
-    n_data = 1000
+    n_data = 100000
     batch_size = 8
     dataloaders = load_geomloss_barys(shapes_fpath, barys_fpath, train_part, 
                                       valid_part, test_part, n_data, batch_size)
