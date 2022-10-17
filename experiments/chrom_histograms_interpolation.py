@@ -356,7 +356,7 @@ def main():
     ]
     model_classes = [
         'BarycentricUNet',
-#         'BarycentricUNet',
+        # 'BarycentricUNet',
     ]
     
     # compute lab representations and (a,b) chrominance ranges

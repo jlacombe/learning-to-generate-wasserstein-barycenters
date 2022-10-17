@@ -22,5 +22,5 @@ then
 fi
 n_barys_runtimes=1000
 
-./run_runtimes_XP.sh $model_id $results_XPs_path $n_barys_runtimes $contours_input_path $contours_barys_path
+# ./run_runtimes_XP.sh $model_id $results_XPs_path $n_barys_runtimes $contours_input_path $contours_barys_path
 ./run_interpolate_XP.sh $model_id $results_XPs_path $model_class $input_imgs_path $targets_path
