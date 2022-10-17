@@ -15,7 +15,7 @@ We also provide a requirements.txt. Please note that it is important to use cert
 In this section we provide an example of using our model for its primary function: interpolating between multiple - black and white - images using different barycentric weights. To do so:
 1. go into the folder `experiments`;
 2. execute `./quick_start.sh [IDS_LIST] [WEIGHTS_LIST]` where:
-    - `[IDS_LIST]` corresponds to the list of the names of the images you want to interpolate. We assume images use the .png format and have been placed in the `input_imgs` folder. You can use the images we already provide in it or use your own images. Note that our implementation considers 1 (white color) as signaling the presence of mass while 0 (black color) corresponds to its absence;
+    - `[IDS_LIST]` corresponds to the list of the names of the images you want to interpolate. We assume images use the .png format and have been placed in the `input_imgs` folder. You can use the images we already provide in it or use your own 512x512 images. Note that our implementation considers 1 (white color) as signaling the presence of mass while 0 (black color) corresponds to its absence;
     - `[WEIGHTS_LIST]` corresponds to the list of the barycentric weights associated to the previous images;
     - example: `./quick_start.sh "car1,owl1" "0.5,0.5"` will use our model to produce the approximation of the Wasserstein barycenter of the images `car1.png` and `owl1.png` with the barycentric weights 0.5 associated to car1.png and 0.5 for owl1.png. You can use as many images as you want. 
 3. results are stored in `experiments/results`. By default, we provide a comparison of the prediction of our model VS the barycenter computed using GeomLoss. 
