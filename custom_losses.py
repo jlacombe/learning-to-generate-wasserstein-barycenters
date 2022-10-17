@@ -33,8 +33,6 @@ def grid(size): # torch version
     return torch.stack((x,y),dim=2).view(-1,2)
 
 def img2measure(a,size):
-    print('img2measure')
-    print(a.shape)
     a = a/255
     a = a.squeeze()
     weights = a.type(dtype)
@@ -43,8 +41,7 @@ def img2measure(a,size):
     return weights.view(-1),samples
 
 def mmd_loss(a,b):
-    input()
     weights_a,samples_a = img2measure(a,512)
     weights_b,samples_b = img2measure(b,512)
-    Loss = SamplesLoss("energy", blur=0.01, scaling=0.9)
+    Loss = SamplesLoss('energy', blur=0.01, scaling=0.9)
     return Loss(weights_a, samples_a, weights_b, samples_b)

@@ -4,29 +4,12 @@ Implementation of the "Learning to Generate Wasserstein Barycenters" paper (http
 ## Requirements
 Our implementation was developed using Python 3.8 under Ubuntu 20.04. CUDA needs to be installed and libcudnn is a plus (you can get libcudnn here: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/). Note that the GeomLoss and the pykeops libraries are not available under Windows, thus scripts using them can't be executed under this OS. 
 
-All the Python dependencies can be installed using the following commands:
+All the Python dependencies can be installed using the following command (we recommend using a fresh new Python virtual environment):
 ```
-pip install numpy==1.23.3
-pip install matplotlib==3.6.0
-pip install scipy==1.9.1
-pip install Pillow==9.2.0
-pip install scikit-image==0.19.3
-pip install imageio==2.22.0
-pip install h5py==3.7.0
-pip install opencv-contrib-python==4.6.0.66
-pip install progress==1.6
-pip install requests==2.28.1
-pip install flickrapi==2.4.0
-pip install torch==1.12.1
-pip install torchvision==0.13.1
-pip install tensorflow==2.9.2
-pip install tensorflow-addons==0.18.0
-pip install POT==0.8.2
-pip install pykeops==2.1
-pip install geomloss==0.2.5
+pip install numpy==1.23.3 matplotlib==3.6.0 scipy==1.9.1 Pillow==9.2.0 scikit-image==0.19.3 imageio==2.22.0 h5py==3.7.0 opencv-contrib-python==4.6.0.66 progress==1.6 requests==2.28.1 flickrapi==2.4.0 torch==1.9.1 torchvision==0.10.1 tensorflow==2.7.0 tensorflow-addons==0.17.1 POT==0.8.2 pykeops==1.5 geomloss==0.2.4
 ```
 
-We also provide a requirements.txt. Please note that it is important to use certain versions for certain libraries. In particular for tensorflow, in our configuration, the version 2.10 caused troubles and we had to use the version 2.9.2. 
+We also provide a requirements.txt. Please note that it is important to use certain versions for certain libraries. 
 
 ## Quick Start
 In this section we provide an example of using our model for its primary function: interpolating between multiple - black and white - images using different barycentric weights. To do so:
@@ -34,16 +17,19 @@ In this section we provide an example of using our model for its primary functio
 2. execute `./quick_start.sh [IDS_LIST] [WEIGHTS_LIST]` where:
     - `[IDS_LIST]` corresponds to the list of the names of the images you want to interpolate. We assume images use the .png format and have been placed in the `input_imgs` folder. You can use the images we already provide in it or use your own images. Note that our implementation considers 1 (white color) as signaling the presence of mass while 0 (black color) corresponds to its absence;
     - `[WEIGHTS_LIST]` corresponds to the list of the barycentric weights associated to the previous images;
-    - example: `./quick_start.sh "1,2,3" "0.3,0.3,0.4"` will use our model to produce the approximation of the Wasserstein barycenter of the images `input_imgs/1.png`, `input_imgs/2.png` and `input_imgs/3.png` with the barycentric weights 0.3 associated to 1.png, 0.3 for 2.png and 0.4 for 3.png. 
+    - example: `./quick_start.sh "car1,owl1" "0.5,0.5"` will use our model to produce the approximation of the Wasserstein barycenter of the images `car1.png` and `owl1.png` with the barycentric weights 0.5 associated to car1.png and 0.5 for owl1.png. You can use as many images as you want. 
 3. results are stored in `experiments/results`. By default, we provide a comparison of the prediction of our model VS the barycenter computed using GeomLoss. 
 
 Note that the model used to produce this interpolation corresponds to the one shown in our paper, trained on our synthetic dataset of 2D shapes. Its weights are stored in `training_model/results/bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_dsv2`, with some visualisations. 
 
 In the following sections, we explain how to train our model from scratch and how to reproduce the experiments of our paper using the code of this github. 
 
-## Synthetic training data 
+## Synthetic training data
+### Downloading the datasets
+We provide the datasets we used in our paper on Zenodo. You can download them (5Gb) via [this direct link](https://zenodo.org/api/files/378ff081-30c6-4f7d-bcd3-69ed224a9ce4/datasets.zip?versionId=11c98c28-6327-42b7-8b3b-4142db17a3d9). If you wish to generate your own synthetic data, follow the 2 next sections; else you can skip them and directly go to [this part](#Training-a-model). 
+
 ### 2D random shapes generation
-To generate a synthetic dataset of 2D random shapes similar to the one used in our paper:
+To generate your own synthetic dataset of 2D random shapes similar to the one used in our paper:
 1. go into `2d_shapes_generation`;
 2. open run.sh and modify the arguments to your convenience, in particular:
     - the number of shapes `n_shapes`;
@@ -63,7 +49,8 @@ Once 2D shapes have been generated, they can be used to produce barycenters. To 
     - the image size `img_size` which should be the same as previously;
     - the number of 2D random shapes used to generate 1 barycenter `n_inputs`;
     - the number of desired barycenters `n_barys`.
-3. execute `run.sh`;
+3. execute `run.sh`:
+    - during the execution a warning about `torch.meshgrid` will be displayed: do not consider it. 
 4. two .h5 files will be generated in `../datasets`:
     - `targets_contours.h5` containing the set of "target points", ie approximated optimal transport maps between the uniform distribution and each input shape;
     - `barycenters_contours.h5` containing the barycenters which are random combinations of these target points.
@@ -73,7 +60,11 @@ Once 2D shapes have been generated, they can be used to produce barycenters. To 
 In `generate_multi_iters_bary.py`, we also provide an example of generation of barycenters which uses a greater number of descent steps (which is only 1 for the barycenters produced previously). 
 
 ## Training a model
-To train our model from scratch: 
+In order to be able to reproduce the experiments of the paper, we provide a set of pretrained models in `training_model/results`:
+* `bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_dsv2` corresponds to the model trained on synthetic contour shapes;
+* `bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_flickr` corresponds to the model trained on chrominance histograms from Flickr images. 
+
+If you wish to use one of them, directly go to the [experiments part](#Experiments). Else to train a model from scratch: 
 1. go into `training_model`; 
 2. open `train_bary_model.py` and adjust the parameters, in particular:
     - `n_data` the total number of pairs (inputs, barycenter) to use for the training, validation and testing steps; 
@@ -82,16 +73,12 @@ To train our model from scratch:
 3. execute `python train_bary_model.py`
 4. once the training is done, the model is stored with a set of visualizations (in particular the evolution of different metrics and the comparison between real and predicted barycenters) in `training_model/results` in its own sub-folder. 
 
-In order to be able to reproduce the experiments of the paper, we also provide a set of pretrained models in `training_model/results`:
-* `bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_dsv2` corresponds to the model trained on synthetic contour shapes;
-* `bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_flickr` corresponds to the model trained on chrominance histograms from Flickr images. 
-
 ## Experiments
 ### Interpolations and runtimes experiments
 Once our model has been trained, sketch interpolation and runtimes experiments conducted in our paper can be reproduced as follows:
 1. go into `experiments`;
 2. open `create_geomloss_targets.sh`:
-    - this script will create the target points associated to the .png files stored in `experiments/input_imgs`, which can be then used to compute GeomLoss barycenters. Some black and white images are already provided in this folder but you can add your own images;
+    - this script will create the target points associated to all the .png files stored in `experiments/input_imgs`, which can be then used to compute GeomLoss barycenters. Some black and white images are already provided in this folder but you can add your own images;
     - also note that in the images we use, the mass is represented by 1 (white) while its absence is represented by 0 (black);
     - if you don't use 512x512 images, you have to change the value of the parameter `m`. 
 4. execute `create_geomloss_targets.sh`;
@@ -118,13 +105,14 @@ Once our model has been trained, sketch interpolation and runtimes experiments c
 The comparison between our model and the Deep Wasserstein Embedding (DWE) method from https://arxiv.org/pdf/1710.07457.pdf can be done by first training such a model using the different .sh scripts we provide in the dwe folder or by using the pretrained DWE models provided in `dwe/models`:
 * each DWE model is represented by 5 sub-folders `[MODEL_ID]_autoencoder`, `[MODEL_ID]_dwe`, `[MODEL_ID]_emd`, `[MODEL_ID]_feat`, `[MODEL_ID]_unfeat` where `[MODEL_ID]` corresponds to the id of the DWE model used;
 * `[MODEL_ID]` = `randshapes` corresponds to the pretrained modified DWE model, adapted to handle 512x512 images and trained on our synthetic dataset;
-* `[MODEL_ID]` = `randshapes_28x28` corresponds to the pretrained original DWE model, trained on our synthetic dataset downsampled from 512x512 to 28x28;
-* `[MODEL_ID]` = `cat` corresponds to the pretrained original DWE model, trained on a subset of the GoogleDoodle / Quickdraw dataset, containing only sketches of cats. 
+* `[MODEL_ID]` = `randshapes_28x28` corresponds to the pretrained original DWE model, trained on our synthetic dataset downsampled from 512x512 to 28x28.
 
 Please also note that the code inside the dwe folder corresponds to a modified version of https://github.com/mducoffe/Learning-Wasserstein-Embeddings. The original implementation of DWE was in Python 2, we adapted it to Python 3 and performed multiple modifications. 
 
 #### Generation of ground truth Wasserstein distances for medium or high resolution images
-If you want to train your own DWE model, you will have to compute the wasserstein distances between each pair of inputs of your dataset. To do so, you can either use EMD or GeomLoss: if the resolution of your images is small enough (28x28 for instance) we recommend to use EMD; else you will probably have to use GeomLoss to compute these distances (this is what we do for the 512x512 images). If you use GeomLoss, follow the following steps (else skip them):
+If you want to train your own DWE model, you will have to consider the Wasserstein distances between each pair of inputs of your dataset. If you are using the barycenters dataset we provide, the corresponding Wasserstein distances dataset is also available in the `datasets` folder. 
+
+If you wish to compute Wasserstein distances, we propose 2 options using EMD or GeomLoss. If the resolution of your images is small enough (28x28 for instance) we recommend to use EMD; else you will probably have to use GeomLoss to compute these distances (this is what we do for the 512x512 images). If you use GeomLoss, follow the following steps (else go directly to the [next part](#Training-a-DWE-model)):
 1. go into `wdists_generation`;
 2. open `run_generate_wdists.sh` and adjust the following parameters:
     - `input_shapes_path` the full path towards the .h5 file containing the synthetic 2D shapes (see "2D random shapes generation");
@@ -135,7 +123,9 @@ If you want to train your own DWE model, you will have to compute the wasserstei
 4. the wasserstein distances are now stored into the .h5 file specified by the parameter `wdists_path`.
 
 #### Training a DWE model
-To train a DWE model yourself, you can modify and run one of the provided .sh scripts in the `dwe` folder. Note that for the ones which do not consider GeomLoss, we use `run_emd.py` at the beginning of the script to generate the Wasserstein distances with EMD. Let's for instance consider that we want to train a DWE model adapted to 512x512 images on our synthethic 512x512 dataset with Wasserstein distances generated with GeomLoss:
+If you are using one of the provided pretrained DWE models, directly go to the [next part](#Comparison-of-the-approximation-errors-of-our-model-VS-DWE). 
+
+To train your own DWE model, you can modify and run one of the provided .sh scripts in the `dwe` folder. Note that for the ones which do not consider GeomLoss, we use `run_emd.py` at the beginning of the script to generate the Wasserstein distances with EMD. Let's for instance consider that we want to train a DWE model adapted to 512x512 images on our synthethic 512x512 dataset with Wasserstein distances generated with GeomLoss:
 1. go into `dwe`;
 2. open `run_randshapes.sh` and consider the following parameters:
     - `dataset_id` the id of the dataset used, here "randshapes";
@@ -144,13 +134,14 @@ To train a DWE model yourself, you can modify and run one of the provided .sh sc
     - `nd` the number of barycenters used for the training of the model;
     - `bs` the batch size;
     - `epochs` the number of epochs for the training.
-3. execute `run_randshapes.sh`:
+3. note that we already provide the pretrained DWE models for "randshapes" and "randshapes_28x28": if you train a DWE model for one of these datasets, it will **erase** the pretrained models we provide. If you want to keep these pretrained versions, don't forget to make a backup;
+4. execute `run_randshapes.sh`:
     - during the execution a wordy warning about sharding for run_randshapes will be displayed: do not consider it. 
-4. The trained DWE model will be saved in models under the name `randshapes_...`. 
+5. The trained DWE model will be saved in models under the name `randshapes_...`. 
 
 For a dataset where we choose to generate Wasserstein distances with EMD, the steps will be similar to the previous ones, with some differences. For instance for an original DWE model on our synthetic dataset downsampled from 512x512 to 28x28:
 1. go into `dwe`;
-2. copy `input_contours_28x28.npy` from `../datasets` to `data`; 
+2. copy `input_contours_28x28.npy` from `../datasets` to `data` (create the folder if it does not already exist) and rename it `randshapes_28x28.npy`; 
 3. open `run_randshapes_28x28.sh` and consider the following parameters:
     - `dataset_id` the id of the dataset used, here "run_randshapes_28x28";
     - `train_nd`: the original implementation of DWE stores the training set into a set of .mat files in the folder `dwe/data`. `train_nd` corresponds to the number of tuples (index shape 1, index shape 2, EMD wasserstein distance) per file;
@@ -160,9 +151,10 @@ For a dataset where we choose to generate Wasserstein distances with EMD, the st
     - `emb_size` the size of the embedding used in the original DWE model, 50 by default;
     - `bs` the batch size;
     - `epochs` the number of epochs for the training.
-4. execute `run_randshapes_28x28.sh`:
+4. note that we already provide the pretrained DWE models for "randshapes" and "randshapes_28x28": if you train a DWE model for one of these datasets, it will **erase** the pretrained models we provide. If you want to keep these pretrained versions, don't forget to make a backup;
+5. execute `run_randshapes_28x28.sh`:
     - during the execution a wordy warning about sharding for run_randshapes will be displayed: do not consider it. 
-5. the trained DWE model will be saved in models under the name `run_randshapes_28x28_...` and visualisations  will be created in `dwe/imgs`. 
+6. the trained DWE model will be saved in models under the name `run_randshapes_28x28_...` and by default some visualisations will be created in `dwe/imgs`. 
 
 For `run_googledoodle.sh`, the previous steps apply, at the exception of the step 2 where you will instead have to download the cat.npy dataset at https://console.cloud.google.com/storage/browser/quickdraw_dataset/full/numpy_bitmap and put cat.npy in the `data` folder.
 
@@ -190,7 +182,8 @@ The interpolation experiments can also be done with a DWE model. To do so:
 4. by default the results are stored in `./results/DWE_$model_id`.
 
 ### Color transfer experiments
-Finally, color transfer experiments can be reproduced. First to download and preprocess the Flickr dataset we used:
+#### Downloading and preprocessing the Flickr dataset
+We already provide a preprocessed Flickr dataset in `datasets/flickr` but if you wish to make your own, follow these steps:
 1. go into `flickr_preprocessing`;
 2. open `download_flickr_imgs.py` and replace the values of `KEY` and `SECRET` with your own Flickr API keys (see https://www.flickr.com/services/api/misc.api_keys.html to get them);
 3. execute `python dowload_flickr_imgs.py`;
@@ -200,11 +193,15 @@ Finally, color transfer experiments can be reproduced. First to download and pre
 7. execute `python imgs_to_chrom_histos.py`;
 8. the chrominance histograms are stored into `datasets/flickr/input_chrom_histos_$n_histos.h5`. 
 
-You can then train a model of your choice on this dataset as it has been done in the previous parts, or consider a pretrained model. We provide our model pretrained on the Flickr dataset in `training_model/results/bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_flickr`. 
+Then to generate barycenters, follow the steps explained in [this part](#Barycenters-generation), using the relevant paths for your datasets (a commented example is provided in `run.sh`). 
 
+#### Training a model on Flickr
+You can then train a model of your choice on this dataset as it has been explained in [this part](#Training-a-model), or consider a pretrained model. We provide our model pretrained on the Flickr dataset in `training_model/results/bunet_skipco_100000_31epoch_SGDR_nesterov_IN_0.0005_0.99_8_2_flickr`. 
+
+#### Color Transfer
 Finally you can reproduce the color transfer experiments by following the next steps:
 1. go into `experiments`;
 2. open `chrom_histograms_interpolation.py` and modify the parameters at the beginning of the `main` function, in particular: `input_folder`, `img_ids`, `n_iters`, `base_folder`, `model_ids`, `model_classes`. We refer to the comments written in the code for more details about these variables;
-3. execute `python hrom_histograms_interpolation.py`
+3. execute `python chrom_histograms_interpolation.py`
     - during the execution multiple warnings about the color range will be displayed: do not consider them. 
 4. by default, results are stored in the `experiments/chrominance_histograms` folder. 
