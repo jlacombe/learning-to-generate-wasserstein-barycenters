@@ -26,7 +26,7 @@ In the following sections, we explain how to train our model from scratch and ho
 
 ## Synthetic training data
 ### Downloading the datasets
-We provide the datasets we used in our paper on Zenodo. You can download them (5Gb) via [this direct link](https://zenodo.org/api/files/378ff081-30c6-4f7d-bcd3-69ed224a9ce4/datasets.zip?versionId=11c98c28-6327-42b7-8b3b-4142db17a3d9) and extract the archive directly at the root of the project (ie the datasets should be placed in a folder `learning-to-generate-wasserstein-barycenters/datasets`). 
+We provide the datasets we used in our paper on Zenodo. You can download them (5Gb) [on Zenodo](https://zenodo.org/record/7185972#.Y1ZVI0pBxH5) and extract the archive directly at the root of the project (ie the datasets should be placed in a folder `learning-to-generate-wasserstein-barycenters/datasets`). 
 
 If you wish to generate your own synthetic data, follow the 2 next sections; else you can skip them and directly go to [this part](#Training-a-model). 
 
